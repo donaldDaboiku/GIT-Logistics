@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\DashboardController;
+use App\Http\Controllers\Api\V1\HubController;
 use App\Http\Controllers\Api\V1\ShipmentController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,6 +21,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/shipments', [ShipmentController::class, 'index']);
         Route::post('/shipments', [ShipmentController::class, 'store']);
         Route::patch('/shipments/{shipment}/status', [ShipmentController::class, 'updateStatus']);
+        Route::patch('/shipments/{shipment}/assignment', [ShipmentController::class, 'assign']);
+
+        Route::get('/hubs', [HubController::class, 'index']);
 
         Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
     });

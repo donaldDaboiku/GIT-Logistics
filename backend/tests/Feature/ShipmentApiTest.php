@@ -97,12 +97,36 @@ class ShipmentApiTest extends TestCase
         $shipment = $this->makeShipment();
 
         $this->patchJson("/api/v1/shipments/{$shipment->id}/status", [
+            'status' => ShipmentStatus::AtDestinationHub->value,
+            'location' => 'Abuja Hub',
+            'note' => 'Arrived at destination hub',
+        ])->assertOk()
+            ->assertJsonPath('data.status', ShipmentStatus::AtDestinationHub->value)
+            ->assertJsonPath('data.events.1.note', 'Arrived at destination hub');
+    }
+
+    public function test_status_update_rejects_invalid_transition(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $shipment = $this->makeShipment();
+
+        $this->patchJson("/api/v1/shipments/{$shipment->id}/status", [
             'status' => ShipmentStatus::Delivered->value,
             'location' => 'Wuse, Abuja',
-            'note' => 'Handed to customer',
-        ])->assertOk()
-            ->assertJsonPath('data.status', ShipmentStatus::Delivered->value)
-            ->assertJsonPath('data.events.1.note', 'Handed to customer');
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['status']);
+    }
+
+    public function test_terminal_shipment_cannot_be_updated(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $shipment = $this->makeShipment(['status' => ShipmentStatus::Delivered->value]);
+
+        $this->patchJson("/api/v1/shipments/{$shipment->id}/status", [
+            'status' => ShipmentStatus::Returned->value,
+            'location' => 'Abuja Hub',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['status']);
     }
 
     /** @param  array<string, mixed>  $overrides */

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\ShipmentStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AssignShipmentRequest;
 use App\Http\Requests\StoreShipmentRequest;
 use App\Http\Requests\UpdateShipmentStatusRequest;
 use App\Models\Shipment;
@@ -14,6 +15,8 @@ use Illuminate\Validation\Rule;
 
 class ShipmentController extends Controller
 {
+    private const WITH = ['events', 'hub', 'rider'];
+
     public function index(Request $request): JsonResponse
     {
         $request->validate([
@@ -21,7 +24,7 @@ class ShipmentController extends Controller
             'status' => ['nullable', Rule::enum(ShipmentStatus::class)],
         ]);
 
-        $query = Shipment::with('events')->latest();
+        $query = Shipment::with(self::WITH)->latest();
 
         $query->when($request->query('search'), function ($q, string $search) {
             $q->where(function ($inner) use ($search) {
@@ -40,7 +43,7 @@ class ShipmentController extends Controller
 
     public function show(string $tracking): JsonResponse
     {
-        $shipment = Shipment::with('events')
+        $shipment = Shipment::with(self::WITH)
             ->where('tracking_number', strtoupper(trim($tracking)))
             ->firstOrFail();
 
@@ -72,7 +75,7 @@ class ShipmentController extends Controller
                 'occurred_at' => now(),
             ]);
 
-            return $shipment->load('events');
+            return $shipment->load(self::WITH);
         });
 
         return response()->json(['data' => $this->format($shipment)], 201);
@@ -92,8 +95,42 @@ class ShipmentController extends Controller
                 'occurred_at' => now(),
             ]);
 
-            return $shipment->load('events');
+            return $shipment->load(self::WITH);
         });
+
+        return response()->json(['data' => $this->format($shipment)]);
+    }
+
+    public function assign(AssignShipmentRequest $request, Shipment $shipment): JsonResponse
+    {
+        $validated = $request->validated();
+        $hubId = $validated['hub_id'] ?? null;
+        $riderId = $hubId ? ($validated['rider_id'] ?? null) : null;
+
+        $shipment->update([
+            'hub_id' => $hubId,
+            'rider_id' => $riderId,
+        ]);
+
+        $shipment->load(self::WITH);
+
+        $noteParts = [];
+        if ($shipment->hub) {
+            $noteParts[] = 'Hub: '.$shipment->hub->name;
+        }
+        if ($shipment->rider) {
+            $noteParts[] = 'Rider: '.$shipment->rider->name;
+        }
+
+        if ($noteParts !== []) {
+            $shipment->events()->create([
+                'status' => $shipment->status,
+                'location' => $shipment->hub?->name ?? $shipment->destination,
+                'note' => 'Assignment updated — '.implode(', ', $noteParts),
+                'occurred_at' => now(),
+            ]);
+            $shipment->load(self::WITH);
+        }
 
         return response()->json(['data' => $this->format($shipment)]);
     }
@@ -114,6 +151,16 @@ class ShipmentController extends Controller
             'expected_at' => $s->expected_at?->format('Y-m-d'),
             'status' => $s->status,
             'created_at' => $s->created_at?->toIso8601String(),
+            'hub' => $s->hub ? [
+                'id' => $s->hub->id,
+                'name' => $s->hub->name,
+                'city' => $s->hub->city,
+            ] : null,
+            'rider' => $s->rider ? [
+                'id' => $s->rider->id,
+                'name' => $s->rider->name,
+                'hub_id' => $s->rider->hub_id,
+            ] : null,
             'events' => $s->events->map(fn ($e) => [
                 'status' => $e->status,
                 'location' => $e->location,

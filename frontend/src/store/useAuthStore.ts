@@ -5,6 +5,7 @@ import {
   fetchCurrentUser,
   login as apiLogin,
   logout as apiLogout,
+  readStoredToken,
   readStoredUser,
 } from '../api/auth';
 
@@ -20,12 +21,12 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: readStoredUser(),
-  token: localStorage.getItem('git_auth_token'),
+  token: readStoredToken(),
   isLoading: false,
   error: null,
 
   hydrate: async () => {
-    const token = localStorage.getItem('git_auth_token');
+    const token = readStoredToken();
     if (!token) {
       set({ user: null, token: null });
       return;

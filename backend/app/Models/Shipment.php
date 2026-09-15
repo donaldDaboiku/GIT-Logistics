@@ -12,6 +12,8 @@ class Shipment extends Model
     protected $fillable = [
         'tracking_number',
         'merchant_id',
+        'hub_id',
+        'rider_id',
         'customer_name',
         'customer_phone',
         'origin',
@@ -35,6 +37,16 @@ class Shipment extends Model
     public function merchant(): BelongsTo
     {
         return $this->belongsTo(Merchant::class);
+    }
+
+    public function hub(): BelongsTo
+    {
+        return $this->belongsTo(Hub::class);
+    }
+
+    public function rider(): BelongsTo
+    {
+        return $this->belongsTo(Rider::class);
     }
 
     public function events(): HasMany

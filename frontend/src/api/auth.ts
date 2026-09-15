@@ -23,6 +23,17 @@ export function clearSession(): void {
   localStorage.removeItem(USER_KEY);
 }
 
+export function readStoredToken(): string | null {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (token === 'demo-local-token' && !USE_LOCAL_STORAGE) {
+    clearSession();
+    return null;
+  }
+  return token;
+}
+
+readStoredToken();
+
 export async function login(payload: LoginPayload): Promise<{ user: AuthUser; token: string }> {
   if (USE_LOCAL_STORAGE) {
     const user: AuthUser = { id: 1, name: 'Demo Ops User', email: payload.email, role: 'ops' };

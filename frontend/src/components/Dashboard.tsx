@@ -3,8 +3,9 @@ import { USE_LOCAL_STORAGE } from '../api/client';
 import { useAuthStore } from '../store/useAuthStore';
 import { useShipmentStore } from '../store/useShipmentStore';
 import { CreateShipmentModal } from './CreateShipmentModal';
+import { UpdateStatusModal } from './UpdateStatusModal';
 import { ALL_STATUSES, badgeClass, statusLabel } from '../lib/status';
-import type { Shipment } from '../types';
+import type { Shipment, ShipmentStatus } from '../types';
 
 interface Props {
   onViewShipment: (trackingNumber: string) => void;
@@ -14,6 +15,7 @@ export function Dashboard({ onViewShipment }: Props) {
   const { shipments, stats, loadAll, loadStats, resetDemo, exportAll, error } = useShipmentStore();
   const token = useAuthStore((s) => s.token);
   const [showModal, setShowModal] = useState(false);
+  const [statusTarget, setStatusTarget] = useState<Shipment | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [toast, setToast] = useState('');
@@ -43,6 +45,11 @@ export function Dashboard({ onViewShipment }: Props) {
     setShowModal(false);
     showToast(`Shipment ${trackingNumber} created successfully.`);
     onViewShipment(trackingNumber);
+  };
+
+  const handleStatusUpdated = (trackingNumber: string, status: ShipmentStatus) => {
+    setStatusTarget(null);
+    showToast(`${trackingNumber} updated to ${statusLabel(status)}.`);
   };
 
   const handleReset = async () => {
@@ -139,12 +146,20 @@ export function Dashboard({ onViewShipment }: Props) {
                     <td><span className={badgeClass(s.status)}>{statusLabel(s.status)}</span></td>
                     <td>{s.expected_at}</td>
                     <td>
-                      <button
-                        className="btn btn-light"
-                        onClick={() => onViewShipment(s.tracking_number)}
-                      >
-                        View
-                      </button>
+                      <div className="row-actions">
+                        <button
+                          className="btn btn-light"
+                          onClick={() => onViewShipment(s.tracking_number)}
+                        >
+                          View
+                        </button>
+                        <button
+                          className="btn btn-light"
+                          onClick={() => setStatusTarget(s)}
+                        >
+                          Update
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -169,6 +184,14 @@ export function Dashboard({ onViewShipment }: Props) {
 
       {showModal && canOperate && (
         <CreateShipmentModal onCreated={handleCreated} onClose={() => setShowModal(false)} />
+      )}
+
+      {statusTarget && (
+        <UpdateStatusModal
+          shipment={statusTarget}
+          onUpdated={(status) => handleStatusUpdated(statusTarget.tracking_number, status)}
+          onClose={() => setStatusTarget(null)}
+        />
       )}
 
       {toast && (

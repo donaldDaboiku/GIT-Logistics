@@ -54,6 +54,12 @@ export interface CreateShipmentPayload {
   expected_at: string;
 }
 
+export interface UpdateStatusPayload {
+  status: ShipmentStatus;
+  location: string;
+  note?: string;
+}
+
 export interface AuthUser {
   id: number;
   name: string;

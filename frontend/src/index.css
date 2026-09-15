@@ -117,7 +117,8 @@ th{color:#718097;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
 .modal-head button{border:0;background:#f1f4f8;border-radius:8px;font-size:22px;width:34px;height:34px}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .form-grid label,.field-label{font-size:12px;font-weight:700;color:#53627a}
-.form-grid input,.field-label input{display:block;width:100%;margin-top:6px;padding:11px;border:1px solid #dce4ee;border-radius:8px;outline:0}
+.form-grid input,.form-grid select,.field-label input,.field-label select{display:block;width:100%;margin-top:6px;padding:11px;border:1px solid #dce4ee;border-radius:8px;outline:0;background:#fff}
+.row-actions{display:flex;gap:6px;flex-wrap:wrap}
 .form-error{color:#b32222;font-size:13px;margin:0 0 12px}
 .quick>button:disabled{opacity:.5;cursor:not-allowed}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}

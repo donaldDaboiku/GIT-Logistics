@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { CreateShipmentPayload, DashboardStats, Shipment } from '../types';
+import type { CreateShipmentPayload, DashboardStats, Shipment, UpdateStatusPayload } from '../types';
 import { USE_LOCAL_STORAGE } from '../api/client';
 import { apiErrorMessage } from '../api/errors';
 import {
@@ -8,6 +8,7 @@ import {
   fetchShipments,
   fetchShipmentByTracking,
   fetchStats,
+  updateShipmentStatus as apiUpdateStatus,
 } from '../api/shipments';
 import { resetLocalShipments } from '../data/demo';
 
@@ -23,6 +24,7 @@ interface ShipmentState {
   loadStats: () => Promise<void>;
   track: (trackingNumber: string) => Promise<void>;
   create: (payload: CreateShipmentPayload) => Promise<Shipment>;
+  updateStatus: (shipment: Shipment, payload: UpdateStatusPayload) => Promise<Shipment>;
   resetDemo: () => Promise<void>;
   exportAll: () => Promise<void>;
 }
@@ -34,6 +36,11 @@ const EMPTY_STATS: DashboardStats = {
   delivered: 0,
   returned: 0,
 };
+
+async function refreshBoard() {
+  const [shipments, stats] = await Promise.all([fetchShipments(), fetchStats()]);
+  return { shipments, stats };
+}
 
 export const useShipmentStore = create<ShipmentState>((set) => ({
   shipments: [],
@@ -70,16 +77,27 @@ export const useShipmentStore = create<ShipmentState>((set) => ({
 
   create: async (payload: CreateShipmentPayload) => {
     const shipment = await apiCreate(payload);
-    const [shipments, stats] = await Promise.all([fetchShipments(), fetchStats()]);
-    set({ shipments, stats });
+    set(await refreshBoard());
     return shipment;
+  },
+
+  updateStatus: async (shipment, payload) => {
+    const updated = await apiUpdateStatus(shipment, payload);
+    const board = await refreshBoard();
+    set((state) => ({
+      ...board,
+      trackedShipment:
+        state.trackedShipment?.tracking_number === updated.tracking_number
+          ? updated
+          : state.trackedShipment,
+    }));
+    return updated;
   },
 
   resetDemo: async () => {
     if (!USE_LOCAL_STORAGE) return;
     resetLocalShipments();
-    const [shipments, stats] = await Promise.all([fetchShipments(), fetchStats()]);
-    set({ shipments, stats, trackedShipment: null });
+    set({ ...(await refreshBoard()), trackedShipment: null });
   },
 
   exportAll: async () => {

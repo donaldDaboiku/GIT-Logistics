@@ -29,6 +29,27 @@ export function statusLabel(status: ShipmentStatus): string {
   return STATUS_LABELS[status] ?? status;
 }
 
+const TRANSITIONS: Record<ShipmentStatus, ShipmentStatus[]> = {
+  ORDER_CREATED: ['PICKED_UP', 'CANCELLED'],
+  PICKED_UP: ['AT_ORIGIN_HUB', 'IN_TRANSIT', 'CANCELLED'],
+  AT_ORIGIN_HUB: ['IN_TRANSIT', 'CANCELLED'],
+  IN_TRANSIT: ['AT_DESTINATION_HUB', 'OUT_FOR_DELIVERY'],
+  AT_DESTINATION_HUB: ['OUT_FOR_DELIVERY', 'RETURNED'],
+  OUT_FOR_DELIVERY: ['DELIVERED', 'DELIVERY_ATTEMPTED', 'RETURNED'],
+  DELIVERY_ATTEMPTED: ['OUT_FOR_DELIVERY', 'DELIVERED', 'RETURNED'],
+  DELIVERED: [],
+  RETURNED: [],
+  CANCELLED: [],
+};
+
+export function allowedNextStatuses(current: ShipmentStatus): ShipmentStatus[] {
+  return TRANSITIONS[current] ?? [];
+}
+
+export function suggestedNextStatus(current: ShipmentStatus): ShipmentStatus {
+  return allowedNextStatuses(current)[0] ?? current;
+}
+
 export function badgeClass(status: ShipmentStatus): string {
   if (status === 'DELIVERED') return 'badge green';
   if (status === 'OUT_FOR_DELIVERY' || status === 'DELIVERY_ATTEMPTED') return 'badge orange';
